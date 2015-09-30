@@ -13,3 +13,4 @@ PHPShop::phpshop/inc/config.ini::var::dbase=.::user_db=.::pass_db=.::host=.
 Magento::app/etc/local.xml::var::<dbname><!.CDATA.::<username><!.CDATA.::<password><!.CDATA.::<host><!.CDATA.
 OwnCloud::config/config.php::var::'dbname'.=>.'::'dbuser'.=>.'::'dbpassword'.=>.'::'dbhost'.=>.'
 Textpattern::textpattern/config.php::var::$txpcfg.'db'..=.'::$txpcfg.'user'..=.'::$txpcfg.'pass'..=.'::$txpcfg.'host'..=.'
+ZlatKit:config.php::var::db"=>"::"user"=>"::"passwd"=>"::"host"=>"

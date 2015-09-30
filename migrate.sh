@@ -73,7 +73,7 @@ function mysql_dump {
 		;;
 		restore )
 			for DB_STRING in ${DB_ARRAY[@]}; do
-				DBNAME=`echo $DB_STRING | awk -F:: '{print $2}'`
+				DBNAME=`echo $DB_STRING | awk -F:: '{print $1}'`
 				DBUSER=`echo $DB_STRING | awk -F:: '{print $2}'`
 				DBPASS=`echo $DB_STRING | awk -F:: '{print $3}'`
 

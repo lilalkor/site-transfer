@@ -1,0 +1,5 @@
+# The list of sites to transfer
+# Syntax is:
+# /path/to/source/dir/::/path/to/dir/on/target/::user_on_target
+# Like that:
+# /var/www/admin/www/domain.com/::/var/www/domainer/data/www/domain.org/::domainer

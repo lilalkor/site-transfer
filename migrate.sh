@@ -129,8 +129,8 @@ function mysql_dump {
 				                FastPanel )
 							ssh root@$TARGET_IP "$SQL_COMMAND -e \"CREATE DATABASE \\\`$DBNAME\\\`\""
 							echo_result
-							# Grant priveleges on DB
-							echo -e "INFO: Granting priveleges to user."
+							# Grant privileges on DB
+							echo -e "INFO: Granting privileges to user."
 							ssh root@$TARGET_IP "$SQL_COMMAND -e \"GRANT ALL PRIVILEGES on \\\`$DBNAME\\\`.* to \\\`$DBUSER\\\`@localhost IDENTIFIED BY \\\"$DBPASS\\\"\""
 							echo_result
 							echo -e "-----"

@@ -3,9 +3,10 @@
 SCRIPT_DIR="$(dirname "$0")"
 CMS_ARR=(`grep -vE '^#' $SCRIPT_DIR/cms.list`)
 
-sed -i -e 's|::|/::|' -e 's|$|/|' -e 's|//*|/|g' sites.list
+sed -i -e 's|::|/::|' -e 's|//*|/|g' sites.list
 SITES=(`grep -vE '^#' $SCRIPT_DIR/sites.list | awk -F:: '{print $1}'`)
 TARGETS=(`grep -vE '^#' $SCRIPT_DIR/sites.list | awk -F:: '{print $2}'`)
+REM_USERS=(`grep -vE '^#' $SCRIPT_DIR/sites.list | awk -F:: '{print $3}'`)
 
 TXT_GRN='\e[0;32m'
 TXT_RED='\e[0;31m'
@@ -27,6 +28,44 @@ function echo_result {
 	else
 		echo -e "$MSG_ERR: Failed!"
 	fi
+}
+
+# Function to create www-domains via ISPmanager
+function create_domains {
+	case $PANEL in
+		FastPanel )
+			echo -e "INFO: FastPanel - you need to create domains manually"
+		;;
+		ISPmanager4 )
+			COUNTER=0
+                        for TARGET in ${TARGETS[@]}; do
+                                DOMAIN=`echo "$TARGET" | awk -F\/ '{print $7}'`
+                                USER=${REM_USERS[$COUNTER]}
+                                ((COUNTER++))
+                                echo -e "INFO: Creating domain $DOMAIN"
+                                ssh root@$TARGET_IP "/usr/local/ispmgr/sbin/mgrctl wwwdomain.edit alias="www.$DOMAIN" index="index.php" admin="webmaster@$DOMAIN" domain="$DOMAIN" ip=$TARGET_IP php=phpfcgi owner="$USER" sok=ok"
+                                echo_result
+                                echo -e "-----"
+			done
+			
+			#/usr/local/ispmgr/sbin/mgrctl wwwdomain.edit alias="www.test2.lilal.tk" index="index.php" admin="webmaster@test2.lilal.tk" domain="test2.lilal.tk" ip=159.253.23.42 php=phpfcgi owner=user2 sok=ok
+		;;
+		ISPmanager5 )
+			COUNTER=0
+			for TARGET in ${TARGETS[@]}; do
+				DOMAIN=`echo "$TARGET" | awk -F\/ '{print $7}'`
+				USER=${REM_USERS[$COUNTER]}
+				((COUNTER++))
+				echo -e "INFO: Creating domain $DOMAIN"
+				ssh root@$TARGET_IP "/usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain.edit aliases=www.$DOMAIN dirindex=index.php email="webmaster@$DOMAIN" name="$DOMAIN" owner="$USER" sok=ok"
+				echo_result
+				echo -e "-----"
+			done
+		;;
+		* )
+			echo -e "INFO: No panel - you need to create domains manually"
+		;;
+	esac
 }
 
 # Function to create, check and upload dumps
@@ -59,7 +98,7 @@ function mysql_dump {
                                                 ((ERR_CNT++))
                                         fi
 					# It is good enough to store DB info and create DB on remote host
-					DB_CONN="$DBNAME::$DBUSER::$DBPASS"
+					DB_CONN="$DBNAME::$DBUSER::$DBPASS::$REMOTE_USER"
 					DB_ARRAY=("${DB_ARRAY[@]}" "$DB_CONN")
                                 else
                                         echo -e "$MSG_ERR: Dump in file $DUMP_FILE exists, but it is empty!"
@@ -76,6 +115,9 @@ function mysql_dump {
 				DBNAME=`echo $DB_STRING | awk -F:: '{print $1}'`
 				DBUSER=`echo $DB_STRING | awk -F:: '{print $2}'`
 				DBPASS=`echo $DB_STRING | awk -F:: '{print $3}'`
+				PANEL_USER=`echo $DB_STRING | awk -F:: '{print $4}'`
+
+				DUMP_FILE="$DUMP_DIR/$DBNAME.sql"
 
 				# Checking if DB already exists
 				DB_EXISTS=""
@@ -91,14 +133,17 @@ function mysql_dump {
 							echo -e "INFO: Granting priveleges to user."
 							ssh root@$TARGET_IP "$SQL_COMMAND -e \"GRANT ALL PRIVILEGES on \\\`$DBNAME\\\`.* to \\\`$DBUSER\\\`@localhost IDENTIFIED BY \\\"$DBPASS\\\"\""
 							echo_result
+							echo -e "-----"
 				                ;;
 				                ISPmanager4 )
 							ssh root@$TARGET_IP "/usr/local/ispmgr/sbin/mgrctl db.edit name='$DBNAME' dbusername='$DBUSER' dbpassword='$DBPASS' owner='$PANEL_USER' sok=ok"
 							echo_result
+							echo -e "-----"
 				                ;;
 				                ISPmanager5 )
 							ssh root@$TARGET_IP "/usr/local/mgr5/sbin/mgrctl -m ispmgr db.edit name='$DBNAME' username='$DBUSER' password='$DBPASS' owner='$PANEL_USER' sok=ok"
 							echo_result
+							echo -e "-----"
 				                ;;
 				                Debian )
 							ssh root@$TARGET_IP "$SQL_COMMAND -e \"CREATE DATABASE \\\`$DBNAME\\\`\""
@@ -107,6 +152,7 @@ function mysql_dump {
 							echo -e "INFO: Granting priveleges to user."
 							ssh root@$TARGET_IP "$SQL_COMMAND -e \"GRANT ALL PRIVILEGES on \\\`$DBNAME\\\`.* to \\\`$DBUSER\\\`@localhost IDENTIFIED BY \\\"$DBPASS\\\"\""
 							echo_result
+							echo -e "-----"
 				                ;;
 				                * )
 				                        echo -e "$MSG_ERR: We couldn't detect supported panel on target, and OS seems to be not Debian-based. Sorry."
@@ -139,6 +185,7 @@ function mysql_dump {
 				echo -e "INFO: Uploading dump to DB $DBNAME ($TXT_YLW ssh root@$TARGET_IP "mysql -u$DBUSER -p$DBPASS $DBNAME" < $DUMP_FILE $TXT_RST)"
 				ssh root@$TARGET_IP "mysql -u$DBUSER -p$DBPASS $DBNAME" < $DUMP_FILE
 				echo_result
+				echo -e "-----"
 			done
 		;;
 		* )
@@ -152,7 +199,7 @@ function mysql_dump {
 function panel_detect {
 	echo -e "INFO: Detecting panel."
 
-	PANEL_CHECK_RESULT=`ssh root@$TARGET_IP 'if [ -f /etc/mysql/password ]; then printf 'FastPanel::'; cat /etc/mysql/password; else if [ -f /usr/local/ispmgr/etc/ispmgr.conf ]; then printf 'ISPmanager4::'; grep -E '\bPassword' /usr/local/ispmgr/etc/ispmgr.conf | awk {'print $2'}; else if [ -f /usr/local/mgr5/etc/ispmgr.db ]; then printf 'ISPmanager5::'; sqlite3 /usr/local/mgr5/etc/ispmgr.db "select password from db_server"; else if [ -f /etc/mysql/debian.cnf ]; then echo 'Debian::system'; fi; fi; fi; fi'`
+	PANEL_CHECK_RESULT=`ssh root@$TARGET_IP 'if [ -f /etc/mysql/password ]; then printf 'FastPanel::'; cat /etc/mysql/password; else if [ -f /usr/local/ispmgr/etc/ispmgr.conf ]; then printf 'ISPmanager4::'; grep -E "\bPassword" /usr/local/ispmgr/etc/ispmgr.conf | awk '{print\\\\\\$2}'; else if [ -f /usr/local/mgr5/etc/ispmgr.db ]; then printf 'ISPmanager5::'; sqlite3 /usr/local/mgr5/etc/ispmgr.db "select password from db_server"; else if [ -f /etc/mysql/debian.cnf ]; then echo 'Debian::system'; fi; fi; fi; fi'`
 	echo_result
 	
 	PANEL=`echo $PANEL_CHECK_RESULT | awk -F:: '{print $1}'`
@@ -165,6 +212,7 @@ function panel_detect {
 		;;
 		ISPmanager4 )
 			echo -e "INFO: We have ${TXT_YLW}ISPmanager 4${TXT_RST} on target. Using password from ${TXT_YLW}/usr/local/ispmgr/etc/ispmgr.conf${TXT_RST}"
+			echo -e "Password is $SQL_PASS"
 			SQL_COMMAND="mysql -uroot -p$SQL_PASS"
 		;;
 		ISPmanager5 )
@@ -201,7 +249,13 @@ UNKNOWN_CMS_CNT=0
 UNEXIST_DIR=()
 UNEXIST_DIR_CNT=0
 DB_ARRAY=()
+COUNTER=0
+echo -e "=========="
+echo -e "Site transfer sript starting"
+echo -e "=========="
 for SITE_DIR in ${SITES[@]}; do
+	REMOTE_USER=${REM_USERS[$COUNTER]}
+	((COUNTER++))
 	# Check for existance
 	if [ ! -d ${SITE_DIR} ]; then
 		echo -e "$MSG_ERR: directory $SITE_DIR does not exist!"
@@ -217,10 +271,9 @@ for SITE_DIR in ${SITES[@]}; do
 		CMS=`echo $i | awk -F:: '{print $1}'`
 		FILE=`echo $i | awk -F:: '{print $2}'`
 		TYPE=`echo $i | awk -F:: '{print $3}'`
-		if [ -f ${SITE_DIR}/$FILE ]; then
+		if [ -f ${SITE_DIR}$FILE ]; then
 			echo -e "INFO: ${TXT_YLW}${CMS}${TXT_RST} at ${SITE_DIR}"
 			CMS_DETECTED=1
-
 
 			### Dump database
 			# Getting DB credentials from CMS list
@@ -230,13 +283,13 @@ for SITE_DIR in ${SITES[@]}; do
 			DBHOST_STR=`echo $i | awk -F:: '{print $7}'`
 
 			# Parse DB credentials from config
-			echo -e "INFO: Parsing ${SITE_DIR}/$FILE "
+			echo -e "INFO: Parsing ${SITE_DIR}$FILE "
 			# For case with multiple strings
 			if [ $TYPE == 'var' ]; then
-				DBNAME=(`grep  "$DBNAME_STR" ${SITE_DIR}/$FILE | sed -e "s/$DBNAME_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBUSER=(`grep  "$DBUSER_STR" ${SITE_DIR}/$FILE | sed -e "s/$DBUSER_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBPASS=(`grep  "$DBPASS_STR" ${SITE_DIR}/$FILE | sed -e "s/$DBPASS_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBHOST=(`grep  "$DBHOST_STR" ${SITE_DIR}/$FILE | sed -e "s/$DBHOST_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBNAME=(`grep  "$DBNAME_STR" ${SITE_DIR}$FILE | sed -e "s/$DBNAME_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBUSER=(`grep  "$DBUSER_STR" ${SITE_DIR}$FILE | sed -e "s/$DBUSER_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBPASS=(`grep  "$DBPASS_STR" ${SITE_DIR}$FILE | sed -e "s/$DBPASS_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBHOST=(`grep  "$DBHOST_STR" ${SITE_DIR}$FILE | sed -e "s/$DBHOST_STR//" | awk -F[]\'\"] '{print $1}'`)
 			fi
 			echo_result
 			
@@ -344,12 +397,40 @@ else
 	echo_result
 fi
 
+# Check rsync
+RSYNC=1
+if [ `ssh root@$TARGET_IP 'which rsync >/dev/null; echo $?'` == 1 ]; then
+	echo -en "$MSG_ERR: We don't have rsync on target. Still upload dumps?"	
+	PROMPT=0
+	read -p "[y/N] " answer
+        case ${answer:0:1} in
+            y|Y )
+                echo -e "OK, let,s go!"
+                PROMPT=1
+		RSYNC=0
+            ;;
+            * )
+                echo -e 'Exiting now.'
+		PROMPT=0
+		exit 1
+            ;;
+        esac
+else
+        if [ $PROMPT -eq 0 ]; then
+                echo -e "$MSG_ERR: You wasn't meant to see that!. Exiting now!"
+                exit 1
+        fi
+fi
+
 # Creating  databases and loading dumps on target
 
 panel_detect
+echo -e "=========="
+create_domains
+echo -e "=========="
 
 if [ "$SQL_COMMAND" == "exit 1 #" ]; then
-	echo -e "INFO: No password - no database creation. But we can try to upload dump, if you are sure everything will be OK."
+	echo -e "INFO: No MySQL root password - no database creation. But we can try to upload dump, if you are sure everything will be OK."
 	# Request Y to continue with uploading dumps
 	PROMPT=0
 	read -p "Continue with uploading dumps? [y/N] " answer
@@ -357,6 +438,9 @@ if [ "$SQL_COMMAND" == "exit 1 #" ]; then
 	    y|Y )
 	        echo -e "OK, let,s go!"
 	        PROMPT=1
+		echo -e "=========="
+		echo -e "Uploading dumps ro target"
+		echo -e "=========="
 		mysql_dump restore 
 	    ;;
 	    * )
@@ -370,20 +454,34 @@ else
 	        exit 1
 	fi
 	mysql_check
+	echo -e "=========="
+	echo -e "Uploading dumps ro target"
+	echo -e "=========="
 	mysql_dump restore 
+	echo -e "=========="
 fi
 
 
 # Transferring data with rsync
-for ((i=0; i<${#SITES[@]}; i++)); do
-        if [ ! -d ${SITES[$i]} ]; then
-                echo -e "$MSG_ERR: directory ${SITES[$i]} does not exist! Skipping."
-                echo -e "-----"
-                continue
-        fi
-	
-	echo -e "INFO: Starting rsync of ${SITES[$i]}"
-	echo -e "INFO:$TXT_YLW rsync -azH --numeric-ids --log-file=rsync-$i.log ${SITES[$i]} root@$TARGET_IP:${TARGETS[$i]} $TXT_RST"
-	rsync -azH --numeric-ids --log-file=rsync-$i.log ${SITES[$i]} root@$TARGET_IP:${TARGETS[$i]}
-	echo_result
-done
+if [ $RSYNC == 1 ]; then
+	echo -e "Now we'll rsync data to target!"
+	echo -e "=========="
+	for ((i=0; i<${#SITES[@]}; i++)); do
+	        if [ ! -d ${SITES[$i]} ]; then
+	                echo -e "$MSG_ERR: directory ${SITES[$i]} does not exist! Skipping."
+	                echo -e "-----"
+	                continue
+	        fi
+		
+		echo -e "INFO: Starting rsync of ${SITES[$i]}"
+		echo -e "INFO:$TXT_YLW rsync -azH --numeric-ids --log-file=rsync-$i.log ${SITES[$i]} root@$TARGET_IP:${TARGETS[$i]} $TXT_RST"
+		rsync -azH --numeric-ids --log-file=rsync-$i.log ${SITES[$i]} root@$TARGET_IP:${TARGETS[$i]}
+		echo_result
+		echo -e "INFO: Changing owner of files to ${REM_USERS[$i]}:${REM_USERS[$i]}"
+		ssh root@$TARGET_IP "chown -R ${REM_USERS[$i]}:${REM_USERS[$i]} ${TARGETS[$i]}"
+		echo_result
+		echo -e "-----"
+	done
+else
+	echo -e "INFO: No rsync. That's all."
+fi

@@ -439,7 +439,7 @@ if [ "$SQL_COMMAND" == "exit 1 #" ]; then
 	        echo -e "OK, let,s go!"
 	        PROMPT=1
 		echo -e "=========="
-		echo -e "Uploading dumps ro target"
+		echo -e "Uploading dumps to target"
 		echo -e "=========="
 		mysql_dump restore 
 	    ;;

@@ -34,12 +34,24 @@ function echo_result {
 function create_domains {
 	case $PANEL in
 		FastPanel )
-			echo -e "INFO: FastPanel - you need to create domains manually"
+			COUNTER=0
+                        for TARGET in ${TARGETS[@]}; do
+                                DOMAIN=`echo "$TARGET" | awk -F\/ '{print $(NF-1)}'`
+				TMP_SQL="fast_sql"
+				((COUNTER++))
+				echo -e "INFO: Creating domain $DOMAIN"
+				echo 'INSERT INTO `web_config` (`domain`, `alias`, `charset`, `index_page`, `php`, `perl`, `enabled`, `admin_email`, `port`, `ip`, `ssi`, `user`, `group`, `status`, `backup`)' > $SCRIPT_DIR/$TMP_SQL
+				echo "VALUES ('$DOMAIN', 'www.$DOMAIN', 'UTF-8', 'index.php index.html index.htm', 1, 0, 1, 'admin@$DOMAIN', 80, '$TARGET_IP', 0, 'admin', 'admin', 'CREATED', 0);" >> $SCRIPT_DIR/$TMP_SQL
+				rsync $SCRIPT_DIR/$TMP_SQL root@$TARGET_IP:~/
+				ssh root@$TARGET_IP "$SQL_COMMAND fastpanel < ~/$TMP_SQL && rm ~/$TMP_SQL"
+				echo_result
+                        	echo -e "-----"
+                        done			
 		;;
 		ISPmanager4 )
 			COUNTER=0
                         for TARGET in ${TARGETS[@]}; do
-                                DOMAIN=`echo "$TARGET" | awk -F\/ '{print $7}'`
+                                DOMAIN=`echo "$TARGET" | awk -F\/ '{print $(NF-1)}'`
                                 USER=${REM_USERS[$COUNTER]}
                                 ((COUNTER++))
                                 echo -e "INFO: Creating domain $DOMAIN"
@@ -47,13 +59,11 @@ function create_domains {
                                 echo_result
                                 echo -e "-----"
 			done
-			
-			#/usr/local/ispmgr/sbin/mgrctl wwwdomain.edit alias="www.test2.lilal.tk" index="index.php" admin="webmaster@test2.lilal.tk" domain="test2.lilal.tk" ip=159.253.23.42 php=phpfcgi owner=user2 sok=ok
 		;;
 		ISPmanager5 )
 			COUNTER=0
 			for TARGET in ${TARGETS[@]}; do
-				DOMAIN=`echo "$TARGET" | awk -F\/ '{print $7}'`
+                                DOMAIN=`echo "$TARGET" | awk -F\/ '{print $(NF-1)}'`
 				USER=${REM_USERS[$COUNTER]}
 				((COUNTER++))
 				echo -e "INFO: Creating domain $DOMAIN"
@@ -386,6 +396,7 @@ fi
 
 # Testing SSH connection
 echo -e "INFO: Testing SSH connection to ${TXT_YLW}${TARGET_IP}${TXT_RST}"
+SSH_KEY=0
 ssh -o 'PasswordAuthentication no'  root@$TARGET_IP 'exit'
 if [ `echo $?` -eq 0 ]; then
         echo -e "INFO: [$MSG_OK]"
@@ -394,7 +405,14 @@ else
 	# Putting key to target
 	echo -e "INFO: Putting key to target. You'll be asked for password."
 	ssh-copy-id -i ~/.ssh/id_rsa.pub root@$TARGET_IP
-	echo_result
+	{
+	        if [ `echo $?` -eq 0 ]; then
+	                echo -e "INFO: [$MSG_OK]"
+			SSH_KEY=1
+	        else
+	                echo -e "$MSG_ERR: Failed!"
+	        fi
+	}
 fi
 
 # Check rsync
@@ -455,7 +473,7 @@ else
 	fi
 	mysql_check
 	echo -e "=========="
-	echo -e "Uploading dumps ro target"
+	echo -e "Uploading dumps to target"
 	echo -e "=========="
 	mysql_dump restore 
 	echo -e "=========="
@@ -482,6 +500,12 @@ if [ $RSYNC == 1 ]; then
 		echo_result
 		echo -e "-----"
 	done
+	if [ $SSH_KEY == 1 ]; then
+		echo -e "INFO: Removing key from target"
+		PUB_KEY=`cat ~/.ssh/id_rsa.pub`
+		ssh root@$TARGET_IP "sed -ie 's|$PUB_KEY||' ~/.ssh/authorized_keys"
+		echo_result
+	fi
 else
 	echo -e "INFO: No rsync. That's all."
 fi

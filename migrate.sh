@@ -30,7 +30,7 @@ function echo_result {
 	fi
 }
 
-# Function to create www-domains via ISPmanager
+# Function to create www-domains via panel
 function create_domains {
 	case $PANEL in
 		FastPanel )
@@ -205,7 +205,7 @@ function mysql_dump {
 	esac 
 }
 
-# Function to detect panel select MySQL connectioan type
+# Function to detect panel and select MySQL connection type
 function panel_detect {
 	echo -e "INFO: Detecting panel."
 

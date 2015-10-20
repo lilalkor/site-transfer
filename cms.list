@@ -11,6 +11,7 @@ MODx::core/config/config.inc.php::var::$dbase.=.'::$database_user.=.'::$database
 PrestaShop::config/settings.inc.php::var::define('_DB_NAME_',.'::define('_DB_USER_',.'::define('_DB_PASSWD_',.'::define('_DB_SERVER_',.'
 PHPShop::phpshop/inc/config.ini::var::dbase=.::user_db=.::pass_db=.::host=.
 Magento::app/etc/local.xml::var::<dbname><!.CDATA.::<username><!.CDATA.::<password><!.CDATA.::<host><!.CDATA.
+LiveStreet::config/config.local.php::var::.*db.*dbname'].=.'::.*db.*user'].=.'::.*db.*pass'].=.'::.*db.*host'].=.'::db.*
 OwnCloud::config/config.php::var::'dbname'.=>.'::'dbuser'.=>.'::'dbpassword'.=>.'::'dbhost'.=>.'
 Textpattern::textpattern/config.php::var::$txpcfg.'db'..=.'::$txpcfg.'user'..=.'::$txpcfg.'pass'..=.'::$txpcfg.'host'..=.'
 ZlatKit::config.php::var::"db"=>"::"user"=>"::"passwd"=>"::"host"=>"

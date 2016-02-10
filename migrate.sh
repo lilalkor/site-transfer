@@ -209,7 +209,7 @@ function mysql_dump {
 function panel_detect {
 	echo -e "INFO: Detecting panel."
 
-	PANEL_CHECK_RESULT=`ssh root@$TARGET_IP 'if [ -f /etc/mysql/password ]; then printf 'FastPanel::'; cat /etc/mysql/password; else if [ -f /usr/local/ispmgr/etc/ispmgr.conf ]; then printf 'ISPmanager4::'; grep -E "\bPassword" /usr/local/ispmgr/etc/ispmgr.conf | awk '{print\\\\\\$2}'; else if [ -f /root/.my.cnf ]; then printf 'ISPmanager5::'; grep 'password' /root/.my.cnf | awk '{print $3}'; else if [ -f /etc/mysql/debian.cnf ]; then echo 'Debian::system'; fi; fi; fi; fi'`
+	PANEL_CHECK_RESULT=`ssh root@$TARGET_IP 'if [ -f /etc/mysql/password ]; then printf 'FastPanel::'; cat /etc/mysql/password; else if [ -f /usr/local/ispmgr/etc/ispmgr.conf ]; then printf 'ISPmanager4::'; grep -E "\bPassword" /usr/local/ispmgr/etc/ispmgr.conf | awk '{print\\\\\\$2}'; else if [ -f /root/.my.cnf ]; then printf 'ISPmanager5::'; grep 'password' /root/.my.cnf | awk '{print\\\\\\$3}'; else if [ -f /etc/mysql/debian.cnf ]; then echo 'Debian::system'; fi; fi; fi; fi'`
 	echo_result
 	
 	PANEL=`echo $PANEL_CHECK_RESULT | awk -F:: '{print $1}'`

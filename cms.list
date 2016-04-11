@@ -16,3 +16,4 @@ OwnCloud::config/config.php::var::'dbname'.=>.'::'dbuser'.=>.'::'dbpassword'.=>.
 Textpattern::textpattern/config.php::var::$txpcfg.'db'..=.'::$txpcfg.'user'..=.'::$txpcfg.'pass'..=.'::$txpcfg.'host'..=.'
 ZlatKit::config.php::var::"db"=>"::"user"=>"::"passwd"=>"::"host"=>"
 Web-Art::engine/config.ini::var::DB_NAME_BD.=."::DB_USER.=."::DB_PASSWORD.=."::DB_HOST.=."
+CakePHP::app/config/database.php::var::'database'.=>.'::'login'.=>.'::'password'.=>.'::'host'.=>.'

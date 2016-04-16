@@ -296,10 +296,10 @@ for SITE_DIR in ${SITES[@]}; do
 			echo -e "INFO: Parsing ${SITE_DIR}$FILE "
 			# For case with multiple strings
 			if [ $TYPE == 'var' ]; then
-				DBNAME=(`grep  "$DBNAME_STR" ${SITE_DIR}$FILE | sed -e "s/$DBNAME_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBUSER=(`grep  "$DBUSER_STR" ${SITE_DIR}$FILE | sed -e "s/$DBUSER_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBPASS=(`grep  "$DBPASS_STR" ${SITE_DIR}$FILE | sed -e "s/$DBPASS_STR//" | awk -F[]\'\"] '{print $1}'`)
-				DBHOST=(`grep  "$DBHOST_STR" ${SITE_DIR}$FILE | sed -e "s/$DBHOST_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBNAME=(`grep -E "$DBNAME_STR" ${SITE_DIR}$FILE | sed -re "s/$DBNAME_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBUSER=(`grep -E "$DBUSER_STR" ${SITE_DIR}$FILE | sed -re "s/$DBUSER_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBPASS=(`grep -E "$DBPASS_STR" ${SITE_DIR}$FILE | sed -re "s/$DBPASS_STR//" | awk -F[]\'\"] '{print $1}'`)
+				DBHOST=(`grep -E "$DBHOST_STR" ${SITE_DIR}$FILE | sed -re "s/$DBHOST_STR//" | awk -F[]\'\"] '{print $1}'`)
 			fi
 			echo_result
 			

@@ -18,3 +18,4 @@ ZlatKit::config.php::var::"db"=>"::"user"=>"::"passwd"=>"::"host"=>"
 Web-Art::engine/config.ini::var::DB_NAME_BD.=."::DB_USER.=."::DB_PASSWORD.=."::DB_HOST.=."
 CakePHP::app/config/database.php::var::'database'.=>.'::'login'.=>.'::'password'.=>.'::'host'.=>.'
 InstantCMS::system/config/config.php::var::'db_base'.*?=>.'::'db_user'.*?=>.'::'db_pass'.*?=>.'::'db_host'.*?=>.'
+Yii::protected/config/database.php::var::'connectionString'.*dbname=::'username'.=>.'::'password'.=>.'::'connectionString'.=>.'mysql:host=
